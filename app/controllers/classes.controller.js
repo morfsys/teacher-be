@@ -88,7 +88,8 @@ module.exports = function() {
             Class.findById(req.params.id)
             .then(item=>{
                 if(item) {
-                    return item.addScheduleItem(day, teacherId, timeFrom, timeTo);
+                    let newItem = item.addScheduleItem(day, teacherId, timeFrom, timeTo);
+                    return Class.findByIdAndUpdate(req.params.id, {weekdays: newItem.weekdays}, {new: true})
                 }else{
                     return Promise.reject({
                         status: 404,
