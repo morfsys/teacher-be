@@ -1,4 +1,4 @@
-const Teacher = require("../models/teacher.model");
+const {Teacher, TeacherAvailability} = require("../models/teacher.model");
 const mongoose = require("mongoose");
 module.exports = () => {
     const fn = {
@@ -55,6 +55,66 @@ module.exports = () => {
                 res.status(200).send(data);
             }).catch(err => {
                 res.status(500).send({
+                    error: err.message || "Unknown error"
+                });
+            })
+        },
+        setWeekDays: (req, res, next) => {
+            const {weekdays} = req.body;
+            Promise.resolve()
+            .then(()=>{
+                console.log(typeof weekdays, weekdays.length );
+                if(!(typeof weekdays == 'object' && weekdays.length == 7)) {
+                    return Promise.reject({
+                        status: 400,
+                        message: "Bad request"
+                    });
+                }
+                return TeacherAvailability.setAvailability(req.params.id, weekdays)
+            })
+            
+            .then(teacher=>{
+                return Promise.resolve({success: true})
+            })
+
+            .then(data=>res.send(data))
+            .catch(err => {
+                res.status(err.status || 500).send({
+                    error: err.message || "Unknown error"
+                });
+            })
+        },
+        setUnavailableTime: (req, res) => {
+            const {fromTime, toTime} = req.body;
+            Promise.resolve()
+            .then(()=>{
+               
+                if(!(fromTime && toTime)) {
+                    return Promise.reject({
+                        status: 400,
+                        message: "Bad request"
+                    });
+                }
+                return TeacherAvailability.setUnavailableTime(req.params.id, fromTime, toTime);
+            })
+            .then(teacher=>{
+                return Promise.resolve({success: true})
+            })
+
+            .then(data=>res.send(data))
+            .catch(err => {
+                res.status(err.status || 500).send({
+                    error: err.message || "Unknown error"
+                });
+            })
+        },
+        getAvailableTeachers: (req, res) => {
+            TeacherAvailability.getAvailableTeachers('2019-12-02', '12:00', "13:00")
+            
+            
+            .then(data=>res.send(data))
+            .catch(err => {
+                res.status(err.status || 500).send({
                     error: err.message || "Unknown error"
                 });
             })
