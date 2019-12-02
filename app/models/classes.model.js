@@ -3,10 +3,14 @@ const moment = require('moment');
 
 const ClassSchema = mongoose.Schema({
     title: String,
-    startDate: Date,
-    endDate: Date,
+    startDate: String,
+    endDate: String,
     weekdays: {
+        type: [
+            
+        ], 
         default: []
+        
     }
 });
 
@@ -20,12 +24,13 @@ ClassSchema.methods.setDefaultWeekSchedule = function() {
     this.weekdays = weekdays;
 }
 ClassSchema.pre('save', function(next){
-    if(this.weekdays.length <= 0) {
-        this.setDefaultWeekSchedule();
-    }
+    // if(this.weekdays.length <= 0) {
+    //     this.setDefaultWeekSchedule();
+    // }
     next();
 })
 ClassSchema.methods.addScheduleItem = function(day, teacherId, timeFrom, timeTo) {
+    console.log(day, teacherId, timeFrom, timeTo);
     return Promise.resolve()
     .then(()=>{
         let occupied = this.weekdays[day].schedule.reduce((t,c)=>{
@@ -38,6 +43,7 @@ ClassSchema.methods.addScheduleItem = function(day, teacherId, timeFrom, timeTo)
             this.weekdays[day].schedule.push({
                 teacherId, timeFrom, timeTo
             });
+            console.log(this.weekdays[day]);
             return this.save();
         }else{
             return Promise.reject({

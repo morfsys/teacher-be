@@ -73,8 +73,9 @@ const TeacherAvailability = mongoose.Schema({
     unavailableTime: {
         type: [
             {
-                fromTime: Date,
-                toTime: Date
+                day: Number,
+                fromTime: String,
+                toTime: String
             }
         ],
         default: []
@@ -113,8 +114,74 @@ TeacherAvailability.statics.setAvailability = function(teacherId, weekdays) {
     })
 }
 
-TeacherAvailability.statics.getAvailableTeachers = function (date, timeFrom, timeTo) {
-    let weekDay = moment(date, 'YYYY-MM-DD').day();
+TeacherAvailability.statics.getTeacherAvailability = function(teacherId) {
+    return Promise.resolve()
+    .then(()=>{
+        try{
+            return this.aggregate([
+                {
+                    $match: {
+                        teacherId: mongoose.Types.ObjectId(teacherId)
+                    }
+                },
+                // {
+                //     $addFields: {
+                //         weekdays: {
+                //             $map: {
+                //                 input: [0,1,2,3,4,5,6],
+                //                 as: "day",
+                //                 in: {
+                //                     availability: {
+                //                         $cond: [{$eq: [{$type: {$arrayElemAt: ["$weekdays", "$$day"]} }, "missing"]}, [], ]
+                //                     }
+                //                 }
+                //             }
+                //         }
+                //     }
+                // }
+            ])
+        }catch(err) {
+            return Promise.reject({
+                message: err.message
+            })
+        }
+    })
+    // return this.aggregate([
+    //     {
+    //         $match: {
+    //             teacherId: mongoose.Types.ObjectId(teacherId)
+    //         }
+    //     },
+    //     // {
+    //     //     $addFields: {
+    //     //         weekdays: {
+    //     //             $map: {
+    //     //                 input: [0,1,2,3,4,5,6],
+    //     //                 as: "day",
+    //     //                 in: {
+    //     //                     availability: {
+    //     //                         $cond: [{$eq: [{$type: {$arrayElemAt: ["$weekdays", "$$day"]} }, "missing"]}, [], ]
+    //     //                     }
+    //     //                 }
+    //     //             }
+    //     //         }
+    //     //     }
+    //     // }
+    // ])
+    .then(teacher=>{
+        if(teacher) {
+            return teacher;
+        }else{
+            return Promise.reject({
+                status: 404,
+                message: "Teacher not found"
+            })
+        }
+    })
+}
+
+TeacherAvailability.statics.getAvailableTeachers = function (weekDay, timeFrom, timeTo) {
+    // let weekDay = moment(date, 'YYYY-MM-DD').day();
     console.log(weekDay);
     return this.aggregate([
         {
@@ -140,6 +207,18 @@ TeacherAvailability.statics.getAvailableTeachers = function (date, timeFrom, tim
             $unwind: "$availability"
         },
         {
+            $match: {
+                $expr: {
+                    $and: [
+                        {$gte: [timeFrom, "$availability.from"]},
+                        {$lte: [timeFrom, "$availability.to"]},
+                        {$gte: [timeTo, "$availability.from"]},
+                        {$lte: [timeTo, "$availability.to"]},
+                    ]
+                }
+            }
+        },  
+        {
             $project: {currentDaySchedule: 0}
         },
         {
@@ -151,15 +230,66 @@ TeacherAvailability.statics.getAvailableTeachers = function (date, timeFrom, tim
                             $filter: {
                                 input: "$unavailableTime",
                                 as: "time",
-                                cond: {$eq: [{$dateToString: {format: "%G-%m-%d", date: "$$time.fromTime"}}, date]}
+                                // cond: {$eq: [{$dateToString: {format: "%G-%m-%d", date: "$$time.fromTime"}}, date]}
+                                cond: {
+                                    $and: [
+                                        {$eq: ["$$time.day", weekDay]},
+                                        {
+                                            $or: [
+                                                {
+                                                    $and: [
+                                                        {$gt: [timeFrom, "$$time.fromTime"]},
+                                                        {$lt: [timeFrom, "$$time.toTime"]},
+                                                    ]
+                                                },
+                                                {
+                                                    $and: [
+                                                        {$gt: [timeTo, "$$time.fromTime"]},
+                                                        {$lt: [timeTo, "$$time.toTime"]},
+                                                    ]
+                                                },
+                                                {
+                                                    $and: [
+                                                        {$lt: [timeFrom, "$$time.fromTime"]},
+                                                        {$gt: [timeTo, "$$time.toTime"]}
+                                                    ]
+                                                }
+                                            ]
+                                        }
+                                    ]
+                                }   
                             }
                         },
                         as: "time",
                         in: {
-                            fromTime: {$dateToString: {format: "%H:%M", date: "$$time.fromTime"}},
-                            toTime: {$dateToString: {format: "%H:%M", date: "$$time.toTime"}}
+                            fromTime: "$$time.fromTime",
+                            toTime: "$$time.toTime",
+                            // fromTime: {$dateToString: {format: "%H:%M", date: "$$time.fromTime"}},
+                            // toTime: {$dateToString: {format: "%H:%M", date: "$$time.toTime"}}
                         }
                     }
+                    
+                }
+            }
+        },
+        {
+            $match: {
+                $expr: {
+                    $or: [
+                        {
+                            $eq: [{$size: "$unavailableTime"}, 0]
+                        },
+                        // {$lte: [timeTo, "$unavailableTime.0.fromTime"]},
+                        // {$gte: [timeFrom, "$unavailableTime.0.toTime"]}
+                        // {
+                        //     $or: [
+                        //         // {$gte: [timeFrom, "$unavailableTime.fromTime"]},
+                        //         {$lte: [timeTo, "$unavailableTime.0.fromTime"]},
+                        //         {$gte: [timeFrom, "$unavailableTime.0.toTime"]},
+                        //         // {$lte: [timeTo, "$unavailableTime.toTime"]},
+                        //     ]
+                        // }
+                    ]
                     
                 }
             }
@@ -181,7 +311,7 @@ TeacherAvailability.statics.getAvailableTeachers = function (date, timeFrom, tim
     ])
 }
 
-TeacherAvailability.statics.setUnavailableTime = function(teacherId, fromTime, toTime) {
+TeacherAvailability.statics.setUnavailableTime = function(teacherId, day, fromTime, toTime) {
     return Teacher.findById(teacherId)
     .then(teacher=>{
         if(teacher) {
@@ -195,13 +325,13 @@ TeacherAvailability.statics.setUnavailableTime = function(teacherId, fromTime, t
     })
     .then(teacher=>{
         if(teacher) {
-            teacher.unavailableTime.push({fromTime, toTime});
+            teacher.unavailableTime = [{day, fromTime, toTime}];
             return teacher.save();
         }else{
             return new this({
                 teacherId,
                 unavailableTime: {
-                    fromTime, toTime
+                    day, fromTime, toTime
                 }
             }).save();
         }

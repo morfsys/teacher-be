@@ -49,6 +49,17 @@ module.exports = () => {
                     });
                 });
         },
+        getTeacherAvailability: (req, res) => {
+            TeacherAvailability.getTeacherAvailability(req.params.id)
+            .then(data => {
+                res.status(200).send(data);
+            })
+            .catch(err => {
+                res.status(500).send({
+                    message: err.message || "Unknown error occured"
+                });
+            });
+        },
         delete: (req, res) => {
             let { mobile } = req.params;
             Teacher.find({ mobile }).remove().then(data => {
@@ -85,7 +96,7 @@ module.exports = () => {
             })
         },
         setUnavailableTime: (req, res) => {
-            const {fromTime, toTime} = req.body;
+            const {day, fromTime, toTime} = req.body;
             Promise.resolve()
             .then(()=>{
                
@@ -95,7 +106,7 @@ module.exports = () => {
                         message: "Bad request"
                     });
                 }
-                return TeacherAvailability.setUnavailableTime(req.params.id, fromTime, toTime);
+                return TeacherAvailability.setUnavailableTime(req.params.id, day, fromTime, toTime);
             })
             .then(teacher=>{
                 return Promise.resolve({success: true})
@@ -109,7 +120,8 @@ module.exports = () => {
             })
         },
         getAvailableTeachers: (req, res) => {
-            TeacherAvailability.getAvailableTeachers('2019-12-02', '12:00', "13:00")
+            const {day, fromTime, toTime} = req.query;
+            TeacherAvailability.getAvailableTeachers(parseInt(day), fromTime, toTime)
             
             
             .then(data=>res.send(data))

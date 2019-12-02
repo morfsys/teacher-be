@@ -29,7 +29,7 @@ mongoose
         console.log("Failed to connect to mongodb", err.message);
         process.exit();
     });
-
-http.listen(3001, () => {
-    console.log("Server is listening");
+const PORT = parseInt(process.env.PORT) || 3001 
+http.listen(PORT, () => {
+    console.log("Server is listening:"+PORT);
 });

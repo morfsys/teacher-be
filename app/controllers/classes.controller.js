@@ -1,4 +1,4 @@
-
+const mongoose = require('mongoose');
 module.exports = function() {
     const {Class} = require('./../models/classes.model')();
     let fn = {
@@ -15,7 +15,7 @@ module.exports = function() {
                 let cl = new Class({
                     title, startDate, endDate
                 });
-                cl.setDefaultWeekSchedule();
+                // cl.setDefaultWeekSchedule();
                 return cl.save();
             })
             .then(data=>res.send({success: true}))
@@ -26,9 +26,56 @@ module.exports = function() {
             });
         },
         get: (req, res) => {
-            Class.find({})
+            let query = {};
+           
+            Promise.resolve()
+            .then(()=>{
+                try{
+                    if(req.params.id) {
+                        query = {...query, _id: mongoose.Types.ObjectId(req.params.id)}
+                    }
+                    return Class.aggregate([
+                        {
+                            $match: query
+                        }
+                    ])
+                }catch(err) {
+                    return Promise.reject({
+                        message: err.message
+                    })
+                }
+            })
+            
+            // .then(cls=>{
+            //     return Promise.all(cls.map(e=>{
+            //         return e.save();
+            //     }))
+            // })
             .then(cls=>{
-                res.send(cls)
+                if(req.params.id) {
+                    if(cls.length > 0) {
+                        res.send(cls[0])
+                    }else{
+                        return Promise.reject({
+                            status: 404, message: "Class not found"
+                        })
+                    }
+                }else{
+                    res.send(cls);
+                }
+            })
+            .catch(err => {
+                res.status(err.status || 500).send({
+                    error: err.message || "Unknown error"
+                });
+            })
+        },
+        delete: (req, res) => {
+            let {title} = req.params;
+            Class.findOneAndDelete({title})
+
+            .then(cls=>{
+                res.send({success: true})
             })
             .catch(err => {
                 res.status(err.status || 500).send({
@@ -49,7 +96,10 @@ module.exports = function() {
                     });
                 }
             })
-            .then(item=>res.send(item))
+            .then(item=>{
+                console.log('item:'+item)
+                res.send(item);
+            })
             .catch(err => {
                 res.status(err.status || 500).send({
                     error: err.message || "Unknown error"
