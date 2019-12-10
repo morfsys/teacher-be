@@ -18,7 +18,7 @@ module.exports = function() {
                 // cl.setDefaultWeekSchedule();
                 return cl.save();
             })
-            .then(data=>res.send({success: true}))
+            .then(data=>res.send(data))
             .catch(err => {
                 res.status(err.status || 500).send({
                     error: err.message || "Unknown error"
@@ -88,8 +88,15 @@ module.exports = function() {
             Class.findById(req.params.id)
             .then(item=>{
                 if(item) {
-                    let newItem = item.addScheduleItem(day, teacherId, timeFrom, timeTo);
-                    return Class.findByIdAndUpdate(req.params.id, {weekdays: newItem.weekdays}, {new: true})
+                    try {
+                        let newItem = item.addScheduleItem(day, teacherId, timeFrom, timeTo);
+                        return Class.findByIdAndUpdate(req.params.id, {weekdays: newItem.weekdays}, {new: true})
+                    }catch(err) {
+                        return Promise.reject({
+                            status: 405,
+                            message: "Time already booked"
+                        });
+                    }
                 }else{
                     return Promise.reject({
                         status: 404,

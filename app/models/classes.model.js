@@ -26,12 +26,12 @@ ClassSchema.methods.setDefaultWeekSchedule = function () {
     }
 
 }
-// ClassSchema.pre('save', function(next){
-//     // if(this.weekdays.length <= 0) {
-//     //     this.setDefaultWeekSchedule();
-//     // }
-//     next();
-// })
+ClassSchema.pre('save', function(next){
+    if(this.weekdays.length <= 0) {
+        this.setDefaultWeekSchedule();
+    }
+    next();
+})
 ClassSchema.methods.addScheduleItem = function (day, teacherId, timeFrom, timeTo) {
     console.log(day, teacherId, timeFrom, timeTo);
 
@@ -45,6 +45,8 @@ ClassSchema.methods.addScheduleItem = function (day, teacherId, timeFrom, timeTo
             teacherId, timeFrom, timeTo
         });
         console.log(this.weekdays[day]);
+    }else{
+        throw new Error("Time booked");
     }
     return this;
 }
