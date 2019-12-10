@@ -33,18 +33,16 @@ ClassSchema.pre('save', function(next){
     next();
 })
 ClassSchema.methods.addScheduleItem = function (day, teacherId, timeFrom, timeTo) {
-    console.log(day, teacherId, timeFrom, timeTo);
 
 
     let reso = this.weekdays[day].schedule.reduce((t, c) => {
-        return t || ((c.timeFrom < timeFrom && c.timeTo > timeFrom) || (c.timeFrom < timeTo && c.timeTo > timeTo));
+        return t || ((c.timeFrom <= timeFrom && c.timeTo > timeFrom) || (c.timeFrom < timeTo && c.timeTo >= timeTo));
     }, false)
 
     if (!reso) {
         this.weekdays[day].schedule.push({
             teacherId, timeFrom, timeTo
         });
-        console.log(this.weekdays[day]);
     }else{
         throw new Error("Time booked");
     }
